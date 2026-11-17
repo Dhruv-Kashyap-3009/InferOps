@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iris classifier</title>
+  <style>
+    :root {
+      --ink: #1f2430;
+      --muted: #6b7280;
+      --line: #ddd8e6;
+      --accent: #5b4b8a;
+      --paper: #faf9f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      padding: 28px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    h1 { margin: 0 0 4px; font: 600 26px/1.2 Georgia, "Times New Roman", serif; }
+    .sub { margin: 0 0 22px; font-size: 14px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--muted); }
+    input {
+      width: 100%;
+      padding: 9px 10px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+    button {
+      width: 100%;
+      padding: 11px;
+      font: inherit;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #4a3d72; }
+    #result { min-height: 22px; margin: 18px 0 0; font-size: 15px; color: var(--muted); text-align: center; }
+    #result.ok { color: var(--ink); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Iris classifier</h1>
+    <p class="sub">A random forest trained on the Iris dataset. Enter the four measurements in centimeters.</p>
+    <form id="predict-form">
+      <div class="grid">
+        <div>
+          <label for="sepal_length">Sepal length</label>
+          <input id="sepal_length" type="number" step="0.1" min="0.1" value="5.1" required>
+        </div>
+        <div>
+          <label for="sepal_width">Sepal width</label>
+          <input id="sepal_width" type="number" step="0.1" min="0.1" value="3.5" required>
+        </div>
+        <div>
+          <label for="petal_length">Petal length</label>
+          <input id="petal_length" type="number" step="0.1" min="0.1" value="1.4" required>
+        </div>
+        <div>
+          <label for="petal_width">Petal width</label>
+          <input id="petal_width" type="number" step="0.1" min="0.1" value="0.2" required>
+        </div>
+      </div>
+      <button type="submit">Predict</button>
+    </form>
+    <p id="result">Adjust the values, then press Predict.</p>
+  </main>
+  <script>
+    const form = document.getElementById("predict-form");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const fields = ["sepal_length", "sepal_width", "petal_length", "petal_width"];
+      const values = {};
+      for (const field of fields) {
+        values[field] = parseFloat(document.getElementById(field).value);
+      }
+
+      result.className = "";
+      result.textContent = "Predicting...";
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values)
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        result.textContent = "Prediction: " + data.prediction;
+        result.className = "ok";
+      } catch (error) {
+        result.textContent = "No prediction. Check the values and try again.";
+      }
+    });
+  </script>
+</body>
+</html>

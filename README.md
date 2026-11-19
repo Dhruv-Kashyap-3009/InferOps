@@ -1,16 +1,18 @@
-# InferOps — Iris classifier with a CI/CD pipeline
+# InferOps — Breast cancer classifier with a CI/CD pipeline
 
 [![CI-CD](https://github.com/Dhruv-Kashyap-3009/InferOps/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Dhruv-Kashyap-3009/InferOps/actions/workflows/ci-cd.yml)
 
-A small "MLOps in miniature" project: a scikit-learn Iris classifier served by FastAPI,
-with a one-page web form, containerized with Docker, and shipped to Render by GitHub Actions.
+A small "MLOps in miniature" project: a scikit-learn classifier that predicts whether a
+breast tumour is **malignant** or **benign**, served by FastAPI, with a one-page web form,
+containerized with Docker, and shipped to Render by GitHub Actions.
 
 ## What it does
 
-- Trains a `RandomForestClassifier` on the Iris dataset and saves it with joblib.
+- Trains a `RandomForestClassifier` (200 trees) on the Breast Cancer Wisconsin dataset:
+  569 samples, 30 measurements per sample, about 95% accuracy on held-out data.
 - Serves three routes with FastAPI: `GET /` (the form), `GET /health`, `POST /predict`.
-- Returns only `{"prediction": "setosa"}` (or `versicolor` / `virginica`).
-- Rejects missing, zero, negative, or non-numeric measurements with HTTP 422.
+- Returns `{"prediction": "malignant", "confidence": 0.95}` (or `"benign"`).
+- Rejects negative, missing or non-numeric measurements with HTTP 422.
 
 ## How it fits together
 
@@ -34,7 +36,7 @@ with a one-page web form, containerized with Docker, and shipped to Render by Gi
                        ▼
         ┌───────────────────────┐        ┌──────────────────────┐
         │        Render         │ pulls  │      Docker Hub      │
-        │    web service        │◄───────│  iris-api:latest     │
+        │    web service        │◄───────│ inferops-api:latest  │
         └───────────┬───────────┘        └──────────────────────┘
                     ▼
         FastAPI:  /   ·   /health   ·   /predict
@@ -49,7 +51,7 @@ The form at `GET /`:
 
 ![Home page](docs/screenshot-home.png)
 
-After pressing Predict with a setosa sample:
+After pressing Predict with a malignant sample:
 
 ![Prediction result](docs/screenshot-prediction.png)
 
@@ -79,14 +81,27 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 
 ## Call the API
 
+All 30 measurements are required. The values below are one real malignant sample:
+
 ```bash
 curl -X POST http://127.0.0.1:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"sepal_length":5.1,"sepal_width":3.5,"petal_length":1.4,"petal_width":0.2}'
+  -d '{"mean_radius":17.99,"mean_texture":10.38,"mean_perimeter":122.8,
+       "mean_area":1001.0,"mean_smoothness":0.1184,"mean_compactness":0.2776,
+       "mean_concavity":0.3001,"mean_concave_points":0.1471,"mean_symmetry":0.2419,
+       "mean_fractal_dimension":0.07871,"radius_error":1.095,"texture_error":0.9053,
+       "perimeter_error":8.589,"area_error":153.4,"smoothness_error":0.006399,
+       "compactness_error":0.04904,"concavity_error":0.05373,
+       "concave_points_error":0.01587,"symmetry_error":0.03003,
+       "fractal_dimension_error":0.006193,"worst_radius":25.38,"worst_texture":17.33,
+       "worst_perimeter":184.6,"worst_area":2019.0,"worst_smoothness":0.1622,
+       "worst_compactness":0.6656,"worst_concavity":0.7119,
+       "worst_concave_points":0.2654,"worst_symmetry":0.4601,
+       "worst_fractal_dimension":0.1189}'
 ```
 
 ```json
-{"prediction": "setosa"}
+{"prediction": "malignant", "confidence": 0.95}
 ```
 
 On PowerShell 5, `curl` is an alias for `Invoke-WebRequest` — use `curl.exe` instead.
@@ -104,8 +119,8 @@ Four tests cover the health route, a valid prediction, invalid input (422), and 
 ## Docker
 
 ```powershell
-docker build -t iris-api .
-docker run --rm -p 8000:8000 iris-api
+docker build -t inferops-api .
+docker run --rm -p 8000:8000 inferops-api
 ```
 
 The trained model is **not** committed to git; both the image build and the CI test job
@@ -129,7 +144,7 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 | `RENDER_DEPLOY_HOOK` | Render service deploy hook URL |
 
 Render is configured as a **Web Service from an existing image**:
-`docker.io/<dockerhub-username>/iris-api:latest`. Every push to `main` publishes a new
+`docker.io/<dockerhub-username>/inferops-api:latest`. Every push to `main` publishes a new
 image and triggers a redeploy.
 
 ## Project structure
@@ -138,9 +153,9 @@ image and triggers a redeploy.
 InferOps/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py              # 3 routes, 30 lines
-│   └── static/index.html    # form + inline style/script
-├── model/train.py           # trains and saves model/iris.joblib
+│   ├── main.py              # 3 routes + the 30-field input schema
+│   └── static/index.html    # 30-input form, inline style/script
+├── model/train.py           # trains and saves model/breast_cancer.joblib
 ├── tests/test_api.py        # 4 pytest tests
 ├── docs/                    # screenshots used by this README
 ├── .github/workflows/ci-cd.yml

@@ -48,12 +48,12 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/iris-api:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/inferops-api:latest
 
       - name: Scan the image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/iris-api:latest
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/inferops-api:latest
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           # Report only; change to "1" to fail the job on findings
